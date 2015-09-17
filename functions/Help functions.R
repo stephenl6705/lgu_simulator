@@ -240,12 +240,8 @@ fadd_paramdata <- function(infile,paramfile) {
 fcalc_model <- function(infile) {
         
         # infile <- datafile
-        # rm(infile,infile1,infile2)
+        # rm(infile,infile1,infile2,infile21,infile22)
 
-        # plot(infile1$sales.x,exp(infile1$lnpredsales))
-        # infile1 <- infile1[order(infile1$lnpredsales),]
-        # tail(infile1)
-        
         infile$lnpredsales <- infile$Intercept
         infile$lnpredsales <- infile$lnpredsales + infile$Dpeak * infile$DPEAK.x
         infile$lnpredsales <- infile$lnpredsales + infile$I_dumvar * infile$Dum_Var.x
@@ -280,6 +276,7 @@ fcalc_model <- function(infile) {
         
         infile <- rbind(infile1,infile2)
         infile$predsales <- exp(infile$lnpredsales)
+        write.csv(infile,paste(exDir,"/datafile.csv",sep=""))
         
         infile <- ftime_agg(infile,cbind(infile$sales.x,infile$predsales),
                             list(infile$CHANNEL,infile$REGION,infile$MDDI,infile$Device,infile$PLAN,infile$SUBTYPE,

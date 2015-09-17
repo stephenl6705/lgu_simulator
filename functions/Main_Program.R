@@ -29,7 +29,6 @@ datafile <- fadd_PLCdata(datafile,"plc_info.csv")
 datafile <- fadd_rebmindata(datafile,"rebate_min.csv")
 
 paramfile <- fprep_estimates("estimates.csv","device_map.csv")
-summary(paramfile)
 
 datafile <- fadd_paramdata(datafile,paramfile)
 
