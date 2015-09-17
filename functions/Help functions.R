@@ -139,13 +139,13 @@ fadd_rebmindata <- function(infile,rebateminfile) {
 
 }
 
-fprep_estimates <- function(paramfile,devicefile) {
+fprep_estimates <- function(paraminput,devicefile) {
         
         # Prepare Estimates File
         # paramfile <- "estimates.csv"; devicefile <- "device_map.csv"
         # rm(paramfile,devicefile,paramFile,param,deviceMapFile,deviceMap,compDevice,compDevice_lr,compDevice_lss,targetDevice,trim.trailing)
-        
-        paramFile <- paramfile
+
+        paramFile <- paraminput
         param <- read.csv(paste(inDir,paramFile,sep=""), stringsAsFactors=FALSE)
         param<-param[param$name!="",]
         
@@ -195,12 +195,10 @@ fprep_estimates <- function(paramfile,devicefile) {
         
         param <- rbind(targetDevice, compDevice_lr,compDevice_lss)
         
-        summary(param[param$compName=="lfrmaxmode","Estimate"])
         param <- cast(data=param,
                      formula = modelname + Device + CHANNEL + MDDI + PLAN + PLC + SUBTYPE + REGION + 
                              compCompany + compPlan + compSubtype + compDevice ~ compName,
                      fun.aggregate = sum, value="Estimate")
-        summary(param$lfrmaxmode)
         
         param$Intercept <- param$Intercept + param$D_Intercept
         param <- param[,-which(names(param)=="D_Intercept")]

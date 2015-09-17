@@ -8,12 +8,12 @@ library(reshape)
 library(XLConnect)
 library(reshape)
 
-inDir <- "C:/Users/langestrst01/Documents/PROJECTS/LGU/Simulator/app02_input/"
-appDir <- "C:/Users/langestrst01/Documents/PROJECTS/LGU/Simulator/app02/"
+inDir <- "~/PROJECTS/LGU/R-Project/LGU/input/"
+appDir <- "~/PROJECTS/LGU/R-Project/LGU/app/"
 
-source('~/PROJECTS/LGU/R-Project/prepare_app02 - Help functions.R', echo=FALSE)
+source('~/PROJECTS/LGU/R-Project/LGU/functions/Help functions.R', echo=FALSE)
 
-save.image("~/PROJECTS/LGU/R-Project/LGU/LGU.Rproj.RData")
+# save.image("~/PROJECTS/LGU/R-Project/LGU/LGU/.RData")
 
 ########### STEP 1 - Load History  #########################
         
