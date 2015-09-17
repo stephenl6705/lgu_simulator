@@ -142,12 +142,14 @@ fadd_rebmindata <- function(infile,rebateminfile) {
 fprep_estimates <- function(paraminput,devicefile) {
         
         # Prepare Estimates File
-        # paramfile <- "estimates.csv"; devicefile <- "device_map.csv"
-        # rm(paramfile,devicefile,paramFile,param,deviceMapFile,deviceMap,compDevice,compDevice_lr,compDevice_lss,targetDevice,trim.trailing)
+        # paraminput <- "estimates.csv"; devicefile <- "device_map.csv"
+        # rm(paraminput,devicefile,paramFile,param,deviceMapFile,deviceMap,compDevice,compDevice_lr,compDevice_lss,targetDevice,trim.trailing)
 
         paramFile <- paraminput
         param <- read.csv(paste(inDir,paramFile,sep=""), stringsAsFactors=FALSE)
         param<-param[param$name!="",]
+        param[grep("D_",param$name),"name"] <- "D_Intercept"
+        param[grep("I_dumvar",param$name),"name"] <- "I_dumvar"
         
         deviceMapFile <- devicefile
         deviceMap <- read.csv(paste(inDir,deviceMapFile,sep=""), stringsAsFactors=FALSE)
@@ -240,9 +242,9 @@ fcalc_model <- function(infile) {
         # infile <- datafile
         # rm(infile,infile1,infile2)
 
-        plot(infile1$sales.x,exp(infile1$lnpredsales))
-        infile1 <- infile1[order(infile1$lnpredsales),]
-        tail(infile1)
+        # plot(infile1$sales.x,exp(infile1$lnpredsales))
+        # infile1 <- infile1[order(infile1$lnpredsales),]
+        # tail(infile1)
         
         infile$lnpredsales <- infile$Intercept
         infile$lnpredsales <- infile$lnpredsales + infile$Dpeak * infile$DPEAK.x

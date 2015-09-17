@@ -9,6 +9,7 @@ library(XLConnect)
 library(reshape)
 
 inDir <- "~/PROJECTS/LGU/R-Project/LGU/input/"
+exDir <- "~/PROJECTS/LGU/R-Project/LGU/extracts/"
 appDir <- "~/PROJECTS/LGU/R-Project/LGU/app/"
 
 source('~/PROJECTS/LGU/R-Project/LGU/functions/Help functions.R', echo=FALSE)
@@ -34,7 +35,7 @@ datafile <- fadd_paramdata(datafile,paramfile)
 
 calcfile <- fcalc_model(datafile)
 
-write.csv(calcfile,paste(inDir,"/calcfile.csv",sep=""))
+write.csv(calcfile,paste(exDir,"/calcfile.csv",sep=""))
 
 summary(calcfile)
 
