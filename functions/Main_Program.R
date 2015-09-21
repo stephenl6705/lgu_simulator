@@ -7,6 +7,7 @@ library(Hmisc)
 library(reshape)
 library(XLConnect)
 library(reshape)
+library(zoo)
 
 inDir <- "~/PROJECTS/LGU/R-Project/LGU/input/"
 exDir <- "~/PROJECTS/LGU/R-Project/LGU/extracts/"
@@ -33,12 +34,9 @@ paramfile <- fprep_estimates("estimates.csv","device_map.csv")
 datafile <- fadd_paramdata(datafile,paramfile)
 
 calcfile <- fcalc_model(datafile)
+calcfile$PredSales <- calcfile$Sales * 0.95
 
 write.csv(calcfile,paste(exDir,"/calcfile.csv",sep=""))
-
-summary(calcfile)
-
-nrow(calcfile)
 
 aggcalcfile <- fagg_calc(calcfile)
 
