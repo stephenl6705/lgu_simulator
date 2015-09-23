@@ -11,16 +11,16 @@ shinyUI(fluidPage(
                                     selected = "GALAXY_NOTE3"),
                         selectInput("channel", label = h3("Select channel"),
                                     choices = list("HM","RD","RDM","WD","WDM"),
-                                    selected = "HM"),
+                                    selected = "RD"),
                         selectInput("region", label = h3("Select region"),
                                     choices = list("CHG","HON","KYK","KYM","SEL"),
-                                    selected = "CHG"),
+                                    selected = "SEL"),
                         selectInput("plan", label = h3("Select subscription plan"),
                                     choices = list("62b","62o"),
-                                    selected = "62b"),
+                                    selected = "62o"),
                         selectInput("subtype", label = h3("Select subscription type"),
                                     choices = list("010","DS","MNP"),
-                                    selected = "010")
+                                    selected = "MNP")
                 ),
                 mainPanel(plotOutput("avpplot"))
         )

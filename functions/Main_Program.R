@@ -21,6 +21,8 @@ source('~/PROJECTS/LGU/R-Project/LGU/functions/Help functions.R', echo=FALSE)
         
 datafile <- fread_histfile("fin101_simul.csv")
 
+datafile <- fadd_weekday(datafile)
+
 datafile <- fadd_peakdata(datafile,"dpeak_input.csv")
 
 datafile <- fadd_dumvardata(datafile,"dumvar_input.csv")
@@ -31,10 +33,10 @@ datafile <- fadd_rebmindata(datafile,"rebate_min.csv")
 
 paramfile <- fprep_estimates("estimates.csv","device_map.csv")
 
-datafile <- fadd_paramdata(datafile,paramfile)
+pdatafile <- fadd_paramdata(datafile,paramfile)
 
-calcfile <- fcalc_model(datafile)
-calcfile$PredSales <- calcfile$Sales * 0.95
+calcfile <- fcalc_model(pdatafile)
+#calcfile$PredSales <- calcfile$Sales * 0.95
 
 write.csv(calcfile,paste(exDir,"/calcfile.csv",sep=""))
 

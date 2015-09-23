@@ -1,3 +1,4 @@
+# plot(tsplotfile,main=input$device,xlab="Date",ylab="Sales")
 
 shinyServer(function(input, output)
 {
@@ -10,9 +11,9 @@ shinyServer(function(input, output)
                                              & calcfile$Plan==input$plan
                                              & calcfile$Subtype==input$subtype,]
                         tsplotfile= zoo(x=plotfile$Sales, order.by=plotfile$Date)
-                        plot(tsplotfile,main=input$device,xlab="Date",ylab="Sales")
+                        plot(,y=plotfile$Sales,x=plotfile$PredSales)
                 }
         )
 }
 )
-?plot
+

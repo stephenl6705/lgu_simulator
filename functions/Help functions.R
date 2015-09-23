@@ -126,6 +126,14 @@ fadd_PLCdata <- function(infile,PLCfile) {
 
 }
 
+fadd_weekday <- function(infile) {
+        
+        infile$weekday <- as.POSIXlt(infile$date)$wday + 1
+        
+        infile
+        
+}
+
 fadd_rebmindata <- function(infile,rebateminfile) {
         
         # Add Rebate Min File
@@ -148,7 +156,7 @@ fprep_estimates <- function(paraminput,devicefile) {
         paramFile <- paraminput
         param <- read.csv(paste(inDir,paramFile,sep=""), stringsAsFactors=FALSE)
         param<-param[param$name!="",]
-        param[grep("D_",param$name),"name"] <- "D_Intercept"
+        param[grep("D_",param$name),"name"] <- "Intercept"
         param[grep("I_dumvar",param$name),"name"] <- "I_dumvar"
         
         deviceMapFile <- devicefile
@@ -202,8 +210,6 @@ fprep_estimates <- function(paraminput,devicefile) {
                              compCompany + compPlan + compSubtype + compDevice ~ compName,
                      fun.aggregate = sum, value="Estimate")
         
-        param$Intercept <- param$Intercept + param$D_Intercept
-        param <- param[,-which(names(param)=="D_Intercept")]
         param[param$MDDI=="OF","MDDI"] <- "OFF"
         
         trim.trailing <- function (x) sub("\\s+$", "", x)
@@ -243,6 +249,12 @@ fcalc_model <- function(infile) {
         # rm(infile,infile1,infile2,infile21,infile22)
 
         infile$lnpredsales <- infile$Intercept
+        infile[infile$weekday.x==1,"lnpredsales"] <- infile[infile$weekday.x==1,"lnpredsales"] + infile[infile$weekday.x==1,"I_weekday_1"]
+        infile[infile$weekday.x==2,"lnpredsales"] <- infile[infile$weekday.x==2,"lnpredsales"] + infile[infile$weekday.x==2,"I_weekday_2"]
+        infile[infile$weekday.x==3,"lnpredsales"] <- infile[infile$weekday.x==3,"lnpredsales"] + infile[infile$weekday.x==3,"I_weekday_3"]
+        infile[infile$weekday.x==4,"lnpredsales"] <- infile[infile$weekday.x==4,"lnpredsales"] + infile[infile$weekday.x==4,"I_weekday_4"]
+        infile[infile$weekday.x==5,"lnpredsales"] <- infile[infile$weekday.x==5,"lnpredsales"] + infile[infile$weekday.x==5,"I_weekday_5"]
+        infile[infile$weekday.x==6,"lnpredsales"] <- infile[infile$weekday.x==6,"lnpredsales"] + infile[infile$weekday.x==6,"I_weekday_6"]
         infile$lnpredsales <- infile$lnpredsales + infile$Dpeak * infile$DPEAK.x
         infile$lnpredsales <- infile$lnpredsales + infile$I_dumvar * infile$Dum_Var.x
         infile$lnpredsales <- infile$lnpredsales + infile$Lmaxmodeinc * log(infile$max_mode_inc.x)
