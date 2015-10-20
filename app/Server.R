@@ -1,9 +1,14 @@
 # plot(,y=plotfile$sales,x=plotfile$weekday)
 
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
         
-        output$avpplot <- renderPlot({                        
-                        infile <- calcfile
+        output$avpplot <- renderPlot({    
+                        if (file.exists(paste(inDir,"cscenario.csv",sep=""))) {
+                                cscenario <- read.csv(paste(inDir,"cscenario.csv",sep=""), stringsAsFactors=FALSE)
+                                infile <- rbind(calcfile,cscenario)
+                        } else {
+                                infile <- calcfile
+                        }
                         plotfile <- infile[infile$Device==input$device
                                              & infile$Channel==input$channel
                                              & infile$Region==input$region
@@ -21,7 +26,16 @@ shinyServer(function(input, output) {
                                 legend(x="topright", legend=c("Actual","Predicted"),lty=1,col=tsRainbow)
                         }
         })
+
+        observe({
+                input$btn
+                session$sendCustomMessage(type = "resetFileInputHandler", "file1")
+                output$results <- renderPrint({
+                                return("File reset")
+                })
+        })
         
+
         output$tbl <- renderDataTable({
 
                 setwd("~/PROJECTS/LGU/R-Project/LGU/input/")
@@ -31,12 +45,20 @@ shinyServer(function(input, output) {
                 if (is.null(inFile)) {
                         return(NULL)
                 } else {
+
                         tbl <- read.csv(inFile$datapath, header=input$header, sep=input$sep, quote=input$quote)
+                        tbl$weekday <- as.POSIXlt(tbl$date)$wday + 1
+                        tbl[tbl$weekday==2,"Dum_Var"] <- 0
+                        
+                        #pscenario <- fadd_paramdata(tbl,paramfile)
+                        #cscenario <- fcalc_model(pscenario)
+                        
+                        #write.csv(cscenario,paste(inDir,"cscenario.csv",sep=""))
+                        
                         tbl <- tbl[,c("Device","date","channel","Plan","sub_type","region","company","reb_max_mode","max_mode_inc"
                                       )]
                         #"sub89_15","sub69_15","sub62_15","sub34_15","inventory","DPEAK","Dum_Var","PLC","Min_Rebate"
-                        tbl$weekday <- as.POSIXlt(infile$date)$wday + 1
-                        tbl[tbl$weekday==2,"Dum_Var"] <- 0
+                        
                         return(tbl)
                 }
                 
@@ -49,6 +71,6 @@ shinyServer(function(input, output) {
                 #        & pdatafile$PLAN==input$tbl_plan
                 #        & pdatafile$SUBTYPE==input$tbl_subtype,c("date","reb_max_mode.x")]
                 
-                return(tbl)
         },options=list(pageLength=10))
+        
 })

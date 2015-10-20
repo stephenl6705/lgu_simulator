@@ -1,6 +1,7 @@
 library(shinydashboard)
 library(shiny)
 library(zoo)
+library(data.table)
 
 shinyUI(dashboardPage(
         dashboardHeader(disable = F, title = "LGU Simulator",
@@ -60,6 +61,13 @@ shinyUI(dashboardPage(
                 )
         ),
         dashboardBody(
+                tags$script('Shiny.addCustomMessageHandler("resetFileInputHandler", function(x) {      
+                                var id = "#" + x + "_progress";
+                                var idBar = id + " .bar";
+                                $(id).css("visibility", "hidden");
+                                $(idBar).css("width", "0%");
+                                });
+                '),
                 tabItems(
                         tabItem(tabName = "avpplot",
                                 fluidRow(
@@ -94,7 +102,8 @@ shinyUI(dashboardPage(
                                                       accept=c('text/csv', 
                                                                'text/comma-separated-values,text/plain', 
                                                                '.csv')),
-                                            tags$hr(),
+                                            actionButton("btn", "Reset file input"),
+                                            verbatimTextOutput("results"),
                                             checkboxInput('header', 'Header', TRUE),
                                             radioButtons('sep', 'Separator',
                                                          c(Comma=',',
