@@ -23,7 +23,7 @@ ui <- fluidPage(
                             choices = list("010","DS","MNP"),
                             selected = "MNP",inline=T),
                 sliderInput("nrdays", label = h3("Select number of days"),
-                            min = 1, max = 31, value = 10)
+                            min = 1, max = 31, value = 20)
         ),
         mainPanel(
                 tabsetPanel(
@@ -107,17 +107,46 @@ server <- function(input,output) {
                 sdatafile <- sdatafile[,c(1,ncol(sdatafile),2:(ncol(sdatafile)-1))]
                 
                 # tail(sdatafile, n = input$nrdays)
+
+                sketch = htmltools::withTags(table(
+                        class = 'display',
+                        thead(
+                                tr(
+                                        th(rowspan = 2, 'date'),
+                                        th(rowspan = 2, 'weekday'),
+                                        th(rowspan = 2, 'rebate'),
+                                        th(rowspan = 2, 'incentive'),
+                                        th(colspan = 4, 'subsidy'),
+                                        th(rowspan = 2, 'inventory')
+                                ),
+                                tr(
+                                        lapply(rep(c('89', '69', "62", "34"), 1), th)
+                                )
+                        )
+                ))
                 
-                datatable(tail(sdatafile, n = input$nrdays), class = 'display', style = 'bootstrap',
+                datatable(tail(sdatafile, n = input$nrdays),
+                          callback = JS('table.page("next").draw(false);'),
+                          colnames = c("date","weekday","rebate","incentive","subsidy_89","subsidy_69","subsidy_62","subsidy_34","inventory"),
+                          container = sketch,
+                          #class = 'display',
+                          #style = 'bootstrap',
+                          rownames = F,
+                          #caption = 'Table 1: This is a simple caption for the table.',
+                          caption = htmltools::tags$caption(
+                                  style = 'caption-side: bottom; text-align: center;',
+                                  'Table 1: ', htmltools::em('This is a simple caption for the table.')),
                           options = list(
-                                  lengthMenu = c(5, 10, 15, 20),
+                                  pageLength = 5,
+                                  autoWidth = T,
+                                  #lengthMenu = c(5, 10, 15, 20),
                                   initComplete = JS(
                                           "function(settings, json) {",
                                           "$(this.api().table().header()).css({'background-color': '#000', 'color': '#fff'});",
                                           "}"),
                                   language = list(url = '//cdn.datatables.net/plug-ins/1.10.7/i18n/Korean.json')
-                          ))
-                
+                          )
+                          )
         })
         
 }
