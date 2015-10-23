@@ -20,3 +20,4 @@ vignettes/*.pdf
 *.csv
 *.xls
 *.xls[xm]
+functions/test/*
