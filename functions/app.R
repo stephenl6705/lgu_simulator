@@ -1,7 +1,8 @@
-library(shiny)
-library(ggplot2)
-library(reshape)
-library(DT)
+require(shiny)
+require(ggplot2)
+require(reshape)
+require(DT)
+require(googlesheets)
 
 ui <- fluidPage(
  
@@ -22,12 +23,18 @@ ui <- fluidPage(
                 radioButtons("subtype", label = h3("Select subscription type"),
                             choices = list("010","DS","MNP"),
                             selected = "MNP",inline=T),
+                selectInput("variable", label = h3("Select variable"),
+                            choices = list("reb_max_mode","max_mode_inc","sub89_15","sub69_15","sub62_15","sub34_15","inventory"),
+                            selected = "reb_max_mode"),
                 sliderInput("nrdays", label = h3("Select number of days"),
                             min = 1, max = 31, value = 20)
         ),
         mainPanel(
                 tabsetPanel(
-                        tabPanel("plot",tags$h1("Actual vs. Predicted"),plotOutput("avpplot")),
+                        tabPanel("plot",tags$h1("Actual vs. Predicted"),
+                                 plotOutput("avpplot"),
+                                 plotOutput("varplot")
+                        ),
                         tabPanel("table",DT::dataTableOutput("vartable"))
 ##                        ,
 ##                        tabPanel("form",
@@ -88,6 +95,38 @@ server <- function(input,output) {
                 }
         })
         
+        output$varplot <- renderPlot({    
+                
+                sdatafile <- datafile[datafile$company=="LGU"
+                                      & datafile$Device==input$device
+                                      & datafile$channel==input$channel
+                                      & datafile$region==input$region
+                                      & datafile$Plan==input$plan
+                                      & datafile$sub_type==input$subtype,
+                                      c("date",input$variable)
+                                      ]
+                
+                sdatafile <- sdatafile[order(sdatafile$date),]
+                
+                #tsRainbow <- c("blue","red")
+                
+                if (nrow(sdatafile)>0) {
+                        
+                        plotfile <- melt(sdatafile,id=c("date"))
+                        
+                        j <- ggplot(plotfile) +
+                                #ggtitle("Actual vs. Predicted") +
+                                geom_line(aes(date,value,colour=variable)) +
+                                theme(legend.position="bottom")
+                        
+                        #j <- j + theme(legend.position="bottom")
+                        #j <- j + guides(col="blue")
+                        
+                        print(j)
+                        
+                }
+        })
+        
         output$vartable <- DT::renderDataTable({
                 
                 sdatafile <- datafile[datafile$company=="LGU"
@@ -105,6 +144,8 @@ server <- function(input,output) {
                 sdatafile$date <- format(sdatafile$date, "%Y-%m-%d")
                 sdatafile$day <- weekdays(as.Date(sdatafile$date))
                 sdatafile <- sdatafile[,c(1,ncol(sdatafile),2:(ncol(sdatafile)-1))]
+                
+                # gs_new("LGU", input = tail(sdatafile, 10), trim = TRUE)
                 
                 # tail(sdatafile, n = input$nrdays)
 
