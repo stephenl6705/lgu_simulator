@@ -28,7 +28,7 @@ ui <- fluidPage(
                 selectInput("variable", label = h3("Select variable"),
                             choices = list("reb_max_mode","max_mode_inc","sub89_15","sub69_15","sub62_15","sub34_15","inventory"),
                             selected = "reb_max_mode"),
-                checkboxInput("gsheet", label = h3("Copy to Google Sheet?"),value = F,width = '100%')
+                checkboxInput("gsheet", label = h3("Copy to Google Sheet?"),value = F,width = '100%'),
                 checkboxInput("gsheet_update", label = h3("Update from Google Sheet?"),value = F,width = '100%')
                 #,sliderInput("nrdays", label = h3("Select number of days"),
                 #            min = 1, max = 31, value = 5)
@@ -102,18 +102,23 @@ server <- function(input,output) {
                 }
         })
         
-        output$varplot <- renderPlot({    
-                
-                sdatafile <- datafile[datafile$company=="LGU"
-                                      & datafile$Device==input$device
+        sdatafile <- reactive({
+                sdatafile <- datafile[datafile$Device==input$device
                                       & datafile$channel==input$channel
                                       & datafile$region==input$region
                                       & datafile$Plan==input$plan
                                       & datafile$sub_type==input$subtype
                                       & datafile$date >= input$daterange[1]
                                       & datafile$date <= input$daterange[2]
-                                      ,c("date",input$variable)
-                                      ]
+                                      ,]
+                sdatafile
+        })
+        
+        output$varplot <- renderPlot({    
+                
+                sdatafile <- sdatafile()
+                
+                sdatafile <- sdatafile[sdatafile$company=="LGU",c("date",input$variable)]
                 
                 sdatafile <- sdatafile[order(sdatafile$date),]
                 
@@ -140,27 +145,17 @@ server <- function(input,output) {
                 
                 if (input$gsheet) {
 
-                        sdatafile <- datafile[datafile$Device==input$device
-                                              & datafile$channel==input$channel
-                                              & datafile$region==input$region
-                                              & datafile$Plan==input$plan
-                                              & datafile$sub_type==input$subtype
-                                              & datafile$date >= input$daterange[1]
-                                              & datafile$date <= input$daterange[2]
-                                              ,c("channel","region","MDDI","PLC","company","Device","Plan","sub_type","date",
-                                                 "weekday","DPEAK","Dum_Var","max_mode_inc","reb_max_mode","Min_Rebate",
-                                                 "sub34_15","sub62_15","sub69_15","sub89_15","sales")
-                                               ]
+                        sdatafile <- sdatafile()
                         
-                        #sdatafile <- sdatafile[c("channel","region","MDDI","PLC","company","Device","Plan","sub_type","date",
-                        #                         "weekday","DPEAK","Dum_Var","max_mode_inc","reb_max_mode","Min_Rebate",
-                        #                         "sub34_15","sub62_15","sub69_15","sub89_15","sales")]
+                        sdatafile <- sdatafile[,c("channel","region","MDDI","PLC","company","Device","Plan","sub_type","date",
+                                                  "weekday","DPEAK","Dum_Var","max_mode_inc","reb_max_mode","Min_Rebate",
+                                                  "sub34_15","sub62_15","sub69_15","sub89_15","sales")
+                                               ]
                         
                         uniqdates <- unique(datafile$date)
                         uniqdates <- data.frame(uniqdates)
                         names(uniqdates)[1] <- "date"
                         uniqdates <- uniqdates[order(uniqdates$date),]
-                        #uniqdates <- tail(uniqdates,n=input$nrdays)
                         uniqdates <- data.frame(uniqdates)
                         names(uniqdates)[1] <- "date"
                         uniqdates <- uniqdates[uniqdates$date >= input$daterange[1]
@@ -168,8 +163,6 @@ server <- function(input,output) {
                         uniqdates <- data.frame(uniqdates)
                         names(uniqdates)[1] <- "date"
                         sdatafile <- merge(sdatafile,uniqdates,by="date",all.y = T)
-                        
-                        # gs <- gs_title("LGU"); gs_ws_delete(gs,ws = input$device)
                         
                         gs <- gs_title("LGU"); 
                         gsheets <- gs_ws_ls(gs)
@@ -180,24 +173,12 @@ server <- function(input,output) {
                         }
                         gs <- gs_title("LGU"); gs_ws_new(gs,ws_title = input$device, input = sdatafile, trim = T)
                         
-                        #gs_ws_delete(gs,ws = "GALAXY_NOTE4")
-                        #gs_ws_new(gs,ws_title = "GALAXY_NOTE4", input = head(datafile), trim = T)
-                        
-                        #gs_new("LGU",ws_title = "DO NOT DELETE")
-                        #gs <- gs_title("LGU"); gs_delete(gs)
-                        #gs <- gs_new("LGU", input = sdatafile, trim = T)
-                        
                 }
                 
-                sdatafile <- datafile[datafile$company=="LGU"
-                                      & datafile$Device==input$device
-                                      & datafile$channel==input$channel
-                                      & datafile$region==input$region
-                                      & datafile$Plan==input$plan
-                                      & datafile$sub_type==input$subtype
-                                      & datafile$date >= input$daterange[1]
-                                      & datafile$date <= input$daterange[2]
-                                      ,c("date","reb_max_mode","max_mode_inc","sub89_15","sub69_15","sub62_15","sub34_15","inventory")
+                sdatafile <- sdatafile()
+                
+                sdatafile <- sdatafile[sdatafile$company=="LGU",
+                                       c("date","reb_max_mode","max_mode_inc","sub89_15","sub69_15","sub62_15","sub34_15","inventory")
                                       ]
 
                 sdatafile <- sdatafile[order(sdatafile$date),]
@@ -207,8 +188,6 @@ server <- function(input,output) {
                 sdatafile$day <- weekdays(as.Date(sdatafile$date))
                 sdatafile <- sdatafile[,c(1,ncol(sdatafile),2:(ncol(sdatafile)-1))]
                 
-                # tail(sdatafile, n = input$nrdays)
-
                 sketch = htmltools::withTags(table(
                         class = 'display',
                         thead(
@@ -226,7 +205,6 @@ server <- function(input,output) {
                         )
                 ))
                 
-                #datatable(tail(sdatafile, n = input$nrdays),
                 datatable(sdatafile,
                           callback = JS('table.page("next").draw(false);'),
                           colnames = c("date","weekday","rebate","incentive","subsidy_89","subsidy_69","subsidy_62","subsidy_34","inventory"),
