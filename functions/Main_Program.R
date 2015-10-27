@@ -22,6 +22,8 @@ source('~/PROJECTS/LGU/R-Project/LGU/functions/Help functions.R', echo=FALSE)
 
 ########### SHINY DASHBOARD ################################
 
+runApp(appDir='~/PROJECTS/LGU/R-Project/LGU/LGU_Simulator/',launch.browser=T)
+
 
 ########### STEP 1 - Load History  #########################
         
