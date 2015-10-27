@@ -26,8 +26,11 @@ ui <- fluidPage(
                 selectInput("variable", label = h3("Select variable"),
                             choices = list("reb_max_mode","max_mode_inc","sub89_15","sub69_15","sub62_15","sub34_15","inventory"),
                             selected = "reb_max_mode"),
+                radioButtons("gsheet", label = h3("Create Google Sheet?"),
+                             choices = list("YES","NO"),
+                             selected = "YES",inline=T),
                 sliderInput("nrdays", label = h3("Select number of days"),
-                            min = 1, max = 31, value = 20)
+                            min = 1, max = 31, value = 5)
         ),
         mainPanel(
                 tabsetPanel(
@@ -129,6 +132,52 @@ server <- function(input,output) {
         
         output$vartable <- DT::renderDataTable({
                 
+                if (input$gsheet == "YES") {
+
+                        sdatafile <- datafile[datafile$Device==input$device
+                                               & datafile$channel==input$channel
+                                               & datafile$region==input$region
+                                               & datafile$Plan==input$plan
+                                               & datafile$sub_type==input$subtype,
+                                               c("channel","region","MDDI","PLC","company","Device","Plan","sub_type","date",
+                                                 "weekday","DPEAK","Dum_Var","max_mode_inc","reb_max_mode","Min_Rebate",
+                                                 "sub34_15","sub62_15","sub69_15","sub89_15","sales")
+                                               ]
+                        
+                        #sdatafile <- sdatafile[c("channel","region","MDDI","PLC","company","Device","Plan","sub_type","date",
+                        #                         "weekday","DPEAK","Dum_Var","max_mode_inc","reb_max_mode","Min_Rebate",
+                        #                         "sub34_15","sub62_15","sub69_15","sub89_15","sales")]
+                        
+                        uniqdates <- unique(datafile$date)
+                        uniqdates <- data.frame(uniqdates)
+                        names(uniqdates)[1] <- "date"
+                        uniqdates <- uniqdates[order(uniqdates$date),]
+                        uniqdates <- tail(uniqdates,n=input$nrdays)
+                        uniqdates <- data.frame(uniqdates)
+                        names(uniqdates)[1] <- "date"
+                        
+                        sdatafile <- merge(sdatafile,uniqdates,by="date",all.y = T)
+                        
+                        # gs <- gs_title("LGU"); gs_ws_delete(gs,ws = input$device)
+                        
+                        gs <- gs_title("LGU"); 
+                        gsheets <- gs_ws_ls(gs)
+                        for (i in 1:length(gsheets)) {
+                                if (gsheets[i] == input$device) {
+                                        gs_ws_delete(gs,ws = input$device)
+                                }
+                        }
+                        gs <- gs_title("LGU"); gs_ws_new(gs,ws_title = input$device, input = sdatafile, trim = T)
+                        
+                        #gs_ws_delete(gs,ws = "GALAXY_NOTE4")
+                        #gs_ws_new(gs,ws_title = "GALAXY_NOTE4", input = head(datafile), trim = T)
+                        
+                        #gs_new("LGU",ws_title = "DO NOT DELETE")
+                        #gs <- gs_title("LGU"); gs_delete(gs)
+                        #gs <- gs_new("LGU", input = sdatafile, trim = T)
+                        
+                }
+                
                 sdatafile <- datafile[datafile$company=="LGU"
                                       & datafile$Device==input$device
                                       & datafile$channel==input$channel
@@ -144,8 +193,6 @@ server <- function(input,output) {
                 sdatafile$date <- format(sdatafile$date, "%Y-%m-%d")
                 sdatafile$day <- weekdays(as.Date(sdatafile$date))
                 sdatafile <- sdatafile[,c(1,ncol(sdatafile),2:(ncol(sdatafile)-1))]
-                
-                # gs_new("LGU", input = tail(sdatafile, 10), trim = TRUE)
                 
                 # tail(sdatafile, n = input$nrdays)
 
