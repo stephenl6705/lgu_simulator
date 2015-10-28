@@ -69,40 +69,18 @@ ui <- fluidPage(
 
 server <- function(input,output) {
         
-        output$avpplot <- renderPlot({    
+        calcfile <- reactive({
+
+                calcfile <- load_calcfile()
                 
-                infile <- calcfile
+                calcfile
                 
-                plotfile <- infile[infile$Device==input$device
-                                   & infile$channel==input$channel
-                                   & infile$region==input$region
-                                   & infile$Plan==input$plan
-                                   & infile$sub_type==input$subtype
-                                   & infile$date >= input$daterange[1]
-                                   & infile$date <= input$daterange[2]
-                                   ,c("date","Sales","PredSales")]
-                
-                tsRainbow <- c("blue","red")
-                
-                if (nrow(plotfile)>0) {
-                        
-                        plotfile <- melt(plotfile,id=c("date"))
-                        
-                        j <- ggplot(plotfile) +
-                                #ggtitle("Actual vs. Predicted") +
-                                geom_line(aes(date,value,colour=variable)) +
-                                scale_colour_manual(values=tsRainbow) +
-                                theme(legend.position="bottom")
-                        
-                        #j <- j + theme(legend.position="bottom")
-                        #j <- j + guides(col="blue")
-                        
-                        print(j)
-                        
-                }
         })
         
         sdatafile <- reactive({
+                
+                datafile <- load_datafile()
+                
                 sdatafile <- datafile[datafile$Device==input$device
                                       & datafile$channel==input$channel
                                       & datafile$region==input$region
@@ -112,33 +90,6 @@ server <- function(input,output) {
                                       & datafile$date <= input$daterange[2]
                                       ,]
                 sdatafile
-        })
-        
-        output$varplot <- renderPlot({    
-                
-                sdatafile <- sdatafile()
-                
-                sdatafile <- sdatafile[sdatafile$company=="LGU",c("date",input$variable)]
-                
-                sdatafile <- sdatafile[order(sdatafile$date),]
-                
-                #tsRainbow <- c("blue","red")
-                
-                if (nrow(sdatafile)>0) {
-                        
-                        plotfile <- melt(sdatafile,id=c("date"))
-                        
-                        j <- ggplot(plotfile) +
-                                #ggtitle("Actual vs. Predicted") +
-                                geom_line(aes(date,value,colour=variable)) +
-                                theme(legend.position="bottom")
-                        
-                        #j <- j + theme(legend.position="bottom")
-                        #j <- j + guides(col="blue")
-                        
-                        print(j)
-                        
-                }
         })
         
         observeEvent(input$gsheet, {
@@ -172,17 +123,68 @@ server <- function(input,output) {
                 gs <- gs_title("LGU"); gs_ws_new(gs,ws_title = input$device, input = sdatafile, trim = T)
         })
         
-        updateData <- reactive({
-                outfile <- update_database(input$device)
-                outfile
+        observeEvent(input$gsheet_update, {
+                update_database(input$device)
         })
         
-        observeEvent(input$gsheet_update, {
+        output$avpplot <- renderPlot({    
                 
-                outfile <- updateData()
-                datafile <- outfile[[1]]
-                calcfile <- outfile[[2]]
+                infile <- calcfile()
                 
+                plotfile <- infile[infile$Device==input$device
+                                   & infile$channel==input$channel
+                                   & infile$region==input$region
+                                   & infile$Plan==input$plan
+                                   & infile$sub_type==input$subtype
+                                   & infile$date >= input$daterange[1]
+                                   & infile$date <= input$daterange[2]
+                                   ,c("date","Sales","PredSales")]
+                
+                tsRainbow <- c("blue","red")
+                
+                if (nrow(plotfile)>0) {
+                        
+                        plotfile <- melt(plotfile,id=c("date"))
+                        
+                        j <- ggplot(plotfile) +
+                                #ggtitle("Actual vs. Predicted") +
+                                geom_line(aes(date,value,colour=variable)) +
+                                scale_colour_manual(values=tsRainbow) +
+                                theme(legend.position="bottom")
+                        
+                        #j <- j + theme(legend.position="bottom")
+                        #j <- j + guides(col="blue")
+                        
+                        print(j)
+                        
+                }
+        })
+        
+        output$varplot <- renderPlot({    
+                
+                sdatafile <- sdatafile()
+                
+                sdatafile <- sdatafile[sdatafile$company=="LGU",c("date",input$variable)]
+                
+                sdatafile <- sdatafile[order(sdatafile$date),]
+                
+                #tsRainbow <- c("blue","red")
+                
+                if (nrow(sdatafile)>0) {
+                        
+                        plotfile <- melt(sdatafile,id=c("date"))
+                        
+                        j <- ggplot(plotfile) +
+                                #ggtitle("Actual vs. Predicted") +
+                                geom_line(aes(date,value,colour=variable)) +
+                                theme(legend.position="bottom")
+                        
+                        #j <- j + theme(legend.position="bottom")
+                        #j <- j + guides(col="blue")
+                        
+                        print(j)
+                        
+                }
         })
         
         output$vartable <- DT::renderDataTable({

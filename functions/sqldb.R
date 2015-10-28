@@ -66,15 +66,22 @@ update_database <- function(device) {
         saveData(gsdevice,"datafile")
         saveData(gscalcfile,"calcfile")
         
+}
+
+load_datafile <- function() {
+        
         datafile <- loadData("datafile"); datafile$date <- as.Date(datafile$date,format = "%Y-%m-%d")
+        
+        datafile
+        
+}
+
+load_calcfile <- function() {
+        
         calcfile <- loadData("calcfile"); calcfile$date <- as.Date(calcfile$date,format = "%Y-%m-%d")
         
-        outfile <- list(datafile)
-        outfile[[2]] <- calcfile
-        
-        outfile
+        calcfile
         
 }
 
 reset_history()
-
