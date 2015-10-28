@@ -8,7 +8,7 @@ ui <- fluidPage(
  
         sidebarPanel(
                 dateRangeInput("daterange", label = h3("select a date range"),
-                               start="2014-09-26",end="2014-12-31",min=NULL,max=NULL,language="kr"),
+                               start="2014-09-26",end="2015-01-31",min=NULL,max=NULL,language="kr"),
                 selectInput("device", label = h3("Select device"),
                             choices = list("GALAXY_NOTE3","GALAXY_NOTE4","IPHONE6_16G","IPHONE6_64G",
                                            "IPHONE6+_16G","IPHONE6+_64G","LG_G2","LG_G3","LG_G3_CAT.6"),
@@ -28,8 +28,8 @@ ui <- fluidPage(
                 selectInput("variable", label = h3("Select variable"),
                             choices = list("reb_max_mode","max_mode_inc","sub89_15","sub69_15","sub62_15","sub34_15","inventory"),
                             selected = "reb_max_mode"),
-                checkboxInput("gsheet", label = h3("Copy to Google Sheet?"),value = F,width = '100%'),
-                checkboxInput("gsheet_update", label = h3("Update from Google Sheet?"),value = F,width = '100%')
+                actionButton("gsheet", label = h3("Copy to Google Sheet?")),
+                actionButton("gsheet_update", label = h3("Update from Google Sheet?"))
                 #,sliderInput("nrdays", label = h3("Select number of days"),
                 #            min = 1, max = 31, value = 5)
         ),
@@ -74,23 +74,23 @@ server <- function(input,output) {
                 infile <- calcfile
                 
                 plotfile <- infile[infile$Device==input$device
-                                   & infile$Channel==input$channel
-                                   & infile$Region==input$region
+                                   & infile$channel==input$channel
+                                   & infile$region==input$region
                                    & infile$Plan==input$plan
-                                   & infile$Subtype==input$subtype
-                                   & infile$Date >= input$daterange[1]
-                                   & infile$Date <= input$daterange[2]
-                                   ,c("Date","Sales","PredSales")]
+                                   & infile$sub_type==input$subtype
+                                   & infile$date >= input$daterange[1]
+                                   & infile$date <= input$daterange[2]
+                                   ,c("date","Sales","PredSales")]
                 
                 tsRainbow <- c("blue","red")
                 
                 if (nrow(plotfile)>0) {
                         
-                        plotfile <- melt(plotfile,id=c("Date"))
+                        plotfile <- melt(plotfile,id=c("date"))
                         
                         j <- ggplot(plotfile) +
                                 #ggtitle("Actual vs. Predicted") +
-                                geom_line(aes(Date,value,colour=variable)) +
+                                geom_line(aes(date,value,colour=variable)) +
                                 scale_colour_manual(values=tsRainbow) +
                                 theme(legend.position="bottom")
                         
@@ -141,39 +141,51 @@ server <- function(input,output) {
                 }
         })
         
-        output$vartable <- DT::renderDataTable({
+        observeEvent(input$gsheet, {
                 
-                if (input$gsheet) {
-
-                        sdatafile <- sdatafile()
-                        
-                        sdatafile <- sdatafile[,c("channel","region","MDDI","PLC","company","Device","Plan","sub_type","date",
-                                                  "weekday","DPEAK","Dum_Var","max_mode_inc","reb_max_mode","Min_Rebate",
-                                                  "sub34_15","sub62_15","sub69_15","sub89_15","sales")
-                                               ]
-                        
-                        uniqdates <- unique(datafile$date)
-                        uniqdates <- data.frame(uniqdates)
-                        names(uniqdates)[1] <- "date"
-                        uniqdates <- uniqdates[order(uniqdates$date),]
-                        uniqdates <- data.frame(uniqdates)
-                        names(uniqdates)[1] <- "date"
-                        uniqdates <- uniqdates[uniqdates$date >= input$daterange[1]
-                                               & uniqdates$date <= input$daterange[2],]
-                        uniqdates <- data.frame(uniqdates)
-                        names(uniqdates)[1] <- "date"
-                        sdatafile <- merge(sdatafile,uniqdates,by="date",all.y = T)
-                        
-                        gs <- gs_title("LGU"); 
-                        gsheets <- gs_ws_ls(gs)
-                        for (i in 1:length(gsheets)) {
-                                if (gsheets[i] == input$device) {
-                                        gs_ws_delete(gs,ws = input$device)
-                                }
+                sdatafile <- sdatafile()
+                
+                sdatafile <- sdatafile[,c("channel","region","MDDI","PLC","company","Device","Plan","sub_type","date",
+                                          "weekday","DPEAK","Dum_Var","max_mode_inc","reb_max_mode","Min_Rebate",
+                                          "sub34_15","sub62_15","sub69_15","sub89_15","sales")
+                                       ]
+                
+                uniqdates <- unique(datafile$date)
+                uniqdates <- data.frame(uniqdates)
+                names(uniqdates)[1] <- "date"
+                uniqdates <- uniqdates[order(uniqdates$date),]
+                uniqdates <- data.frame(uniqdates)
+                names(uniqdates)[1] <- "date"
+                uniqdates <- uniqdates[uniqdates$date >= input$daterange[1]
+                                       & uniqdates$date <= input$daterange[2],]
+                uniqdates <- data.frame(uniqdates)
+                names(uniqdates)[1] <- "date"
+                sdatafile <- merge(sdatafile,uniqdates,by="date",all.y = T)
+                
+                gs <- gs_title("LGU"); 
+                gsheets <- gs_ws_ls(gs)
+                for (i in 1:length(gsheets)) {
+                        if (gsheets[i] == input$device) {
+                                gs_ws_delete(gs,ws = input$device)
                         }
-                        gs <- gs_title("LGU"); gs_ws_new(gs,ws_title = input$device, input = sdatafile, trim = T)
-                        
                 }
+                gs <- gs_title("LGU"); gs_ws_new(gs,ws_title = input$device, input = sdatafile, trim = T)
+        })
+        
+        updateData <- reactive({
+                outfile <- update_database(input$device)
+                outfile
+        })
+        
+        observeEvent(input$gsheet_update, {
+                
+                outfile <- updateData()
+                datafile <- outfile[[1]]
+                calcfile <- outfile[[2]]
+                
+        })
+        
+        output$vartable <- DT::renderDataTable({
                 
                 sdatafile <- sdatafile()
                 

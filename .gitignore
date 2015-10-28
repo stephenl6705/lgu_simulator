@@ -21,6 +21,7 @@ vignettes/*.pdf
 *.xls
 *.xls[xm]
 functions/test/*
+database/*
 
 # Google sheets authoriaation
 *.httr-oauth

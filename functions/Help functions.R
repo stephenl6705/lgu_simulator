@@ -243,9 +243,37 @@ fadd_paramdata <- function(infile,paramfile) {
         
 }
 
+convert_character <- function(infile) {
+        
+        infile$company <- as.character(infile$company)
+        infile$channel <- as.character(infile$channel)
+        infile$region <- as.character(infile$region)
+        infile$MDDI <- as.character(infile$MDDI)
+        infile$Device <- as.character(infile$Device)
+        infile$Plan <- as.character(infile$Plan)
+        infile$sub_type <- as.character(infile$sub_type)
+        #infile$Modelname <- as.character(infile$Modelname)
+        infile$PLC <- as.character(infile$PLC)
+        infile
+}
+
+convert_factor <- function(infile) {
+        
+        infile$company <- factor(infile$company)
+        infile$channel <- factor(infile$channel)
+        infile$region <- factor(infile$region)
+        infile$MDDI <- factor(infile$MDDI)
+        infile$Device <- factor(infile$Device)
+        infile$Plan <- factor(infile$Plan)
+        infile$sub_type <- factor(infile$sub_type)
+        infile$Modelname <- factor(infile$Modelname)
+        infile$PLC <- factor(infile$PLC)
+        infile
+}
+
 fcalc_model <- function(infile) {
         
-        # infile <- pdatafile
+        # infile <- pgsdevice
         # rm(infile,infile1,infile2,infile21,infile22)
 
         infile$lnpredsales <- infile$Intercept
@@ -290,26 +318,19 @@ fcalc_model <- function(infile) {
         infile$predsales <- exp(infile$lnpredsales)
         
         infile[(infile$Device!=infile$compDevice) | (infile$company!=infile$compCompany),"sales.x"] <- 0
-        write.csv(infile,paste(exDir,"/pdatafile.csv",sep=""))
+        #write.csv(infile,paste(exDir,"/pdatafile.csv",sep=""))
         
         infile <- ftime_agg(infile,cbind(infile$sales.x,infile$predsales),
-                            list(infile$CHANNEL,infile$REGION,infile$MDDI,infile$Device,infile$PLAN,infile$SUBTYPE,
-                                 infile$modelname,infile$PLC,infile$date,infile$suspension.x),
-                                c("Channel","Region","MDDI","Device","Plan","Subtype","Modelname","PLC","Date","Suspension"),
+                            list(infile$company,infile$CHANNEL,infile$REGION,infile$MDDI,infile$Device,infile$PLAN,infile$SUBTYPE,
+                                 infile$modelname,infile$PLC,infile$date),
+                                c("company","channel","region","MDDI","Device","Plan","sub_type","Modelname","PLC","date"),
                                 c("Sales","PredSales"),
                                 sum
                             )
- 
-        infile$Channel <- factor(infile$Channel)
-        infile$Region <- factor(infile$Region)
-        infile$MDDI <- factor(infile$MDDI)
-        infile$Device <- factor(infile$Device)
-        infile$Plan <- factor(infile$Plan)
-        infile$Subtype <- factor(infile$Subtype)
-        infile$Modelname <- factor(infile$Modelname)
-        infile$PLC <- factor(infile$PLC)
+
+        infile <- convert_factor(infile)
         
-        infile <- infile[infile$Suspension=="",]
+        #infile <- infile[infile$Suspension=="",]
         
         infile
 }
@@ -324,51 +345,4 @@ fagg_calc <- function(infile) {
                                 )
         infile
         
-}
-
-commentout <- function() {
-        
-        incFile <- "Incentive.xlsx"
-        Incentive <- loadWorkbook(paste(inDir,incFile,sep=""))
-        Incentive = readWorksheet(Incentive, sheet = getSheets(Incentive)[1],useCachedValues=FALSE,startRow=1, endRow=10000, startCol=1, endCol=17, header=T)
-        Incentive <- Incentive[Incentive$company!="",]
-        Incentive[is.na(Incentive)] <- 0
-        Incentive <- melt(Incentive,id=(c("company","Device","CHANNEL","SUBTYPE","PLAN","REGION")))
-        Incentive$variable <- strptime(substr(Incentive$variable,2,9),"%d.%m.%y")
-        names(Incentive)[names(Incentive)=="variable"] <- "DATE"
-        Incentive <- Incentive[Incentive$value!=0,]
-        
-        rebateFile <- "rebate.xlsx"
-        rebateFile <- loadWorkbook(paste(inDir,rebateFile,sep=""))
-        rebate <- ""
-        for (i in 1:5) {
-                rebatei <- readWorksheet(rebateFile, sheet = getSheets(rebateFile)[i],useCachedValues=FALSE,startRow=1, endRow=10000, startCol=1, endCol=17, header=T)
-                rebate <- rbind(rebate,rebatei)
-        }
-        rebate <- rebate[rebate$company!="",]
-        rebate[is.na(rebate)] <- 0
-        rebate <- melt(rebate,id=(c("company","Device","CHANNEL","SUBTYPE","PLAN","REGION")))
-        rebate$variable <- strptime(substr(rebate$variable,2,9),"%d.%m.%y")
-        names(rebate)[names(rebate)=="variable"] <- "DATE"
-        
-        rebOwn <- rebate[rebate$company=="LGU",]
-        rebOwn <- merge(rebOwn,targetDevice,c("Device"),all.y=T)
-        
-        rebComp <- merge(rebOwn,compDevice,by.x=c("Device","CHANNEL","SUBTYPE","PLAN"),by.y=c("Device","CHANNEL","SUBTYPE","compPlan"),all.y=T)
-        rebComp <- merge(rebComp,rebate,by.x=c("compDeviceName","CHANNEL","compSubtype","compPlan","compCompany","REGION","DATE"),by.x=c("Device","CHANNEL","SUBTYPE","PLAN","company","REGION","DATE"),all.x=T)
-        head(rebComp)
-        
-        subsidyFile <- "subsidy.xlsx"
-        subsidyFile <- loadWorkbook(paste(inDir,subsidyFile,sep=""))
-        subsidy <- ""
-        for (i in 1:4) {
-                subsidyi <- readWorksheet(subsidyFile, sheet = getSheets(subsidyFile)[i],useCachedValues=FALSE,startRow=1, endRow=10000, startCol=1, endCol=15, header=T)
-                subsidyi[,"File"] <- getSheets(subsidyFile)[i]
-                subsidy <- rbind(subsidy,subsidyi)
-        }
-        subsidy <- subsidy[subsidy$company!="",]
-        subsidy[is.na(subsidy)] <- 0
-        subsidy <- melt(subsidy,id=(c("company","Device","SUBTYPE","PLAN","File")))
-        subsidy$variable <- strptime(substr(subsidy$variable,2,9),"%d.%m.%y")
-        names(subsidy)[names(subsidy)=="variable"] <- "DATE"
 }
