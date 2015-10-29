@@ -158,7 +158,7 @@ server <- function(input,output) {
                 
                 sdatafile <- sdatafile[,c("channel","region","MDDI","PLC","company","Device","Plan","sub_type","date",
                                           "weekday","DPEAK","Dum_Var","max_mode_inc","reb_max_mode","Min_Rebate",
-                                          "sub34_15","sub62_15","sub69_15","sub89_15","sales")
+                                          "sub34_15","sub62_15","sub69_15","sub89_15","inventory","sales")
                                        ]
                 
                 uniqdates <- unique(datafile$date)
