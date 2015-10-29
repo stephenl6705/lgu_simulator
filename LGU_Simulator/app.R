@@ -296,7 +296,7 @@ server <- function(input,output) {
                                   style = 'caption-side: bottom; text-align: center;',
                                   'Table 1: ', htmltools::em('This is a simple caption for the table.')),
                           options = list(
-                                  pageLength = 5,
+                                  pageLength = 25,
                                   autoWidth = T,
                                   #lengthMenu = c(5, 10, 15, 20),
                                   initComplete = JS(
