@@ -18,6 +18,7 @@ exDir <- "~/PROJECTS/LGU/R-Project/LGU/extracts/"
 appDir <- "~/PROJECTS/LGU/R-Project/LGU/app/"
 
 source('~/PROJECTS/LGU/R-Project/LGU/functions/Help functions.R', echo=FALSE)
+source('~/PROJECTS/LGU/R-Project/LGU/functions/sqldb.R', echo=FALSE)
 
 # save.image("~/PROJECTS/LGU/R-Project/LGU/LGU/.RData")
 

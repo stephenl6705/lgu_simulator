@@ -4,6 +4,9 @@ require(reshape)
 require(DT)
 require(googlesheets)
 
+source('~/PROJECTS/LGU/R-Project/LGU/functions/Help functions.R', echo=FALSE, local = TRUE)
+source('~/PROJECTS/LGU/R-Project/LGU/functions/sqldb.R', echo=FALSE, local = TRUE)
+
 ui <- fluidPage(
  
         sidebarPanel(
@@ -29,7 +32,8 @@ ui <- fluidPage(
                             choices = list("reb_max_mode","max_mode_inc","sub89_15","sub69_15","sub62_15","sub34_15","inventory"),
                             selected = "reb_max_mode"),
                 actionButton("gsheet", label = h3("Copy to Google Sheet?")),
-                actionButton("gsheet_update", label = h3("Update from Google Sheet?"))
+                actionButton("gsheet_update", label = h3("Update from Google Sheet?")),
+                actionButton("reset_history", label = h3("Reset data to history only"))
                 #,sliderInput("nrdays", label = h3("Select number of days"),
                 #            min = 1, max = 31, value = 5)
         ),
@@ -39,7 +43,8 @@ ui <- fluidPage(
                                  plotOutput("avpplot"),
                                  plotOutput("varplot")
                         ),
-                        tabPanel("table",DT::dataTableOutput("vartable"))
+                        tabPanel("table",
+                                 DT::dataTableOutput("vartable"))
 ##                        ,
 ##                        tabPanel("form",
 ##                                 tags$form(
@@ -69,32 +74,87 @@ ui <- fluidPage(
 
 server <- function(input,output) {
         
-        calcfile <- reactive({
-
-                calcfile <- load_calcfile()
+        sdatafile <- reactive({
                 
-                calcfile
+                datafile[datafile$Device==input$device
+                         & datafile$channel==input$channel
+                         & datafile$region==input$region
+                         & datafile$Plan==input$plan
+                         & datafile$sub_type==input$subtype
+                         & datafile$date >= input$daterange[1]
+                         & datafile$date <= input$daterange[2]
+                         ,]
                 
         })
         
-        sdatafile <- reactive({
+        scalcfile <- reactive({
                 
-                datafile <- load_datafile()
+                calcfile[calcfile$Device==input$device
+                         & calcfile$channel==input$channel
+                         & calcfile$region==input$region
+                         & calcfile$Plan==input$plan
+                         & calcfile$sub_type==input$subtype
+                         & calcfile$date >= input$daterange[1]
+                         & calcfile$date <= input$daterange[2]
+                         ,c("date","Sales","PredSales")]
                 
-                sdatafile <- datafile[datafile$Device==input$device
-                                      & datafile$channel==input$channel
-                                      & datafile$region==input$region
-                                      & datafile$Plan==input$plan
-                                      & datafile$sub_type==input$subtype
-                                      & datafile$date >= input$daterange[1]
-                                      & datafile$date <= input$daterange[2]
-                                      ,]
-                sdatafile
+        })
+        
+        udatafile <- eventReactive(input$gsheet_update,{
+                
+                datafile[datafile$Device==input$device
+                         & datafile$channel==input$channel
+                         & datafile$region==input$region
+                         & datafile$Plan==input$plan
+                         & datafile$sub_type==input$subtype
+                         & datafile$date >= input$daterange[1]
+                         & datafile$date <= input$daterange[2]
+                         ,]
+                
+        })
+        
+        ucalcfile <- eventReactive(input$gsheet_update,{
+                
+                calcfile[calcfile$Device==input$device
+                         & calcfile$channel==input$channel
+                         & calcfile$region==input$region
+                         & calcfile$Plan==input$plan
+                         & calcfile$sub_type==input$subtype
+                         & calcfile$date >= input$daterange[1]
+                         & calcfile$date <= input$daterange[2]
+                         ,c("date","Sales","PredSales")]
+                
+        })
+        
+        hdatafile <- eventReactive(input$reset_history,{
+                
+                datafile[datafile$Device==input$device
+                         & datafile$channel==input$channel
+                         & datafile$region==input$region
+                         & datafile$Plan==input$plan
+                         & datafile$sub_type==input$subtype
+                         & datafile$date >= input$daterange[1]
+                         & datafile$date <= input$daterange[2]
+                         ,]
+                
+        })
+        
+        hcalcfile <- eventReactive(input$reset_history,{
+                
+                calcfile[calcfile$Device==input$device
+                         & calcfile$channel==input$channel
+                         & calcfile$region==input$region
+                         & calcfile$Plan==input$plan
+                         & calcfile$sub_type==input$subtype
+                         & calcfile$date >= input$daterange[1]
+                         & calcfile$date <= input$daterange[2]
+                         ,c("date","Sales","PredSales")]
+                
         })
         
         observeEvent(input$gsheet, {
                 
-                sdatafile <- sdatafile()
+                if (input$gsheet_update) {sdatafile <- udatafile()} else if (input$reset_history) {sdatafile <- hdatafile()} else {sdatafile <- sdatafile()}
                 
                 sdatafile <- sdatafile[,c("channel","region","MDDI","PLC","company","Device","Plan","sub_type","date",
                                           "weekday","DPEAK","Dum_Var","max_mode_inc","reb_max_mode","Min_Rebate",
@@ -111,6 +171,7 @@ server <- function(input,output) {
                                        & uniqdates$date <= input$daterange[2],]
                 uniqdates <- data.frame(uniqdates)
                 names(uniqdates)[1] <- "date"
+                #uniqdates <<- uniqdates
                 sdatafile <- merge(sdatafile,uniqdates,by="date",all.y = T)
                 
                 gs <- gs_title("LGU"); 
@@ -124,21 +185,25 @@ server <- function(input,output) {
         })
         
         observeEvent(input$gsheet_update, {
+                
                 update_database(input$device)
+                datafile <<- load_datafile()
+                calcfile <<- load_calcfile()
+                print("update finished")
+                
+        })
+        
+        observeEvent(input$reset_history, {
+                
+                reset_history()
+                datafile <<- load_datafile()
+                calcfile <<- load_calcfile()
+                
         })
         
         output$avpplot <- renderPlot({    
                 
-                infile <- calcfile()
-                
-                plotfile <- infile[infile$Device==input$device
-                                   & infile$channel==input$channel
-                                   & infile$region==input$region
-                                   & infile$Plan==input$plan
-                                   & infile$sub_type==input$subtype
-                                   & infile$date >= input$daterange[1]
-                                   & infile$date <= input$daterange[2]
-                                   ,c("date","Sales","PredSales")]
+                if (input$gsheet_update) {plotfile <- ucalcfile()} else if (input$reset_history) {plotfile <- hcalcfile()} else {plotfile <- scalcfile()}
                 
                 tsRainbow <- c("blue","red")
                 
@@ -162,7 +227,7 @@ server <- function(input,output) {
         
         output$varplot <- renderPlot({    
                 
-                sdatafile <- sdatafile()
+                if (input$gsheet_update) {sdatafile <- udatafile()} else if (input$reset_history) {sdatafile <- hdatafile()} else {sdatafile <- sdatafile()}
                 
                 sdatafile <- sdatafile[sdatafile$company=="LGU",c("date",input$variable)]
                 
@@ -189,7 +254,7 @@ server <- function(input,output) {
         
         output$vartable <- DT::renderDataTable({
                 
-                sdatafile <- sdatafile()
+                if (input$gsheet_update) {sdatafile <- udatafile()} else if (input$reset_history) {sdatafile <- hdatafile()} else {sdatafile <- sdatafile()}
                 
                 sdatafile <- sdatafile[sdatafile$company=="LGU",
                                        c("date","reb_max_mode","max_mode_inc","sub89_15","sub69_15","sub62_15","sub34_15","inventory")

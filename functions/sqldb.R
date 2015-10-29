@@ -2,10 +2,8 @@ library(sqldf)
 library(RSQLite)
 
 saveData <- function(data,table,dbpath=dbDir) {
-        # Connect to the database
         setwd(dbpath)
         db <- dbConnect(SQLite(), "database")
-        # Construct the update query by looping over the data fields
         for (i in 1:nrow(data)) {
                 query <- sprintf(
                         "INSERT INTO %s (%s) VALUES ('%s')",
@@ -15,17 +13,13 @@ saveData <- function(data,table,dbpath=dbDir) {
                 )
                 dbGetQuery(db, query)
         }
-        # Submit the update query and disconnect
         dbDisconnect(db)
 }
 
 loadData <- function(table,dbpath=dbDir) {
-        # Connect to the database
         setwd(dbpath)
         db <- dbConnect(SQLite(), "database")
-        # Construct the fetching query
         query <- sprintf("SELECT * FROM %s", table)
-        # Submit the fetch query and disconnect
         data <- dbGetQuery(db, query)
         dbDisconnect(db)
         data
@@ -84,4 +78,4 @@ load_calcfile <- function() {
         
 }
 
-reset_history()
+#reset_history()
