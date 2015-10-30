@@ -22,34 +22,60 @@ ftime_agg <- function (file,agg_list,order_list,desc_vec,stat_vec,stat) {
         time_agg
 }
 
-fread_histfile <- function(histfile) {
+fread_histfile <- function(dirName,histfile,hist="old") {
         
         # Read History File
         # histfile <- "fin101_simul.csv"
         # rm(histfile,history)
         
         history <- histfile
-        history <- read.csv(paste(inDir,history,sep=""),stringsAsFactors=FALSE)
+        history <- read.csv(paste(dirName,history,sep=""),stringsAsFactors=FALSE)
         history[is.na(history)] <- 1
+        
         names(history)[names(history)=="Model_name"] <- "Device"
+        
+        if (hist=="new") {
+                names(history)[names(history)=="Rmaxmode"] <- "reb_max_mode"
+                names(history)[names(history)=="subtype"] <- "sub_type"
+                names(history)[names(history)=="Date"] <- "date"
+                history$suspension <- ""
+                history$Series <- "all"
+                history$MDDI <- "ON"
+                history$reb_avg <- history$reb_max_mode
+                history$avg_inc <- 1
+                history$max_mode_inc <- 1
+                history$sub89_15 <- history$Subsidy
+                history$sub69_15 <- history$Subsidy
+                history$sub62_15 <- history$Subsidy
+                history$sub34_15 <- history$Subsidy
+                history$inventory <- 1
+        }
+
         history$date <- as.Date(history$date,format = "%d/%m/%Y")
 
-        history[history$channel=="HYPERMARKETS","channel"] <- "HM"
-        history[history$channel=="RETAIL DEALER","channel"] <- "RD"
-        history[history$channel=="WHOLESALE DEALER","channel"] <- "WD"
-        history[history$channel=="RETAIL DEALER MANAGED BY LGU+","channel"] <- "RDM"
-        history[history$channel=="WHOLESALE DEALER MANAGED BY LGU+","channel"] <- "WDM"
+        if (hist == "old") {
+                
+                history[history$channel=="HYPERMARKETS","channel"] <- "HM"
+                history[history$channel=="RETAIL DEALER","channel"] <- "RD"
+                history[history$channel=="WHOLESALE DEALER","channel"] <- "WD"
+                history[history$channel=="RETAIL DEALER MANAGED BY LGU+","channel"] <- "RDM"
+                history[history$channel=="WHOLESALE DEALER MANAGED BY LGU+","channel"] <- "WDM"
+                
+                history[history$region=="CHUNGCHEONG","region"] <- "CHG"
+                history[history$region=="HONAM","region"] <- "HON"
+                history[history$region=="KYUNGBUK","region"] <- "KYK"
+                history[history$region=="KYUNGNAM","region"] <- "KYM"
+                history[history$region=="SEOUL","region"] <- "SEL"
+                
+                history[history$Plan=="OVER62","Plan"] <- "62o"
+                history[history$Plan=="BELOW62","Plan"] <- "62b"
+                
+        }
         
-        history[history$region=="CHUNGCHEONG","region"] <- "CHG"
-        history[history$region=="HONAM","region"] <- "HON"
-        history[history$region=="KYUNGBUK","region"] <- "KYK"
-        history[history$region=="KYUNGNAM","region"] <- "KYM"
-        history[history$region=="SEOUL","region"] <- "SEL"
+        history <- history[c("company","channel","Device","sub_type","Plan","date","region","sales","Series",
+                             "suspension","MDDI","reb_avg","reb_max_mode","avg_inc","max_mode_inc",
+                             "sub89_15","sub69_15","sub62_15","sub34_15","inventory")]
         
-        history[history$Plan=="OVER62","Plan"] <- "62o"
-        history[history$Plan=="BELOW62","Plan"] <- "62b"
-        
-        history
 }
 
 fadd_peakdata <- function(infile,peakfile) {
@@ -147,20 +173,23 @@ fadd_rebmindata <- function(infile,rebateminfile) {
 
 }
 
-fprep_estimates <- function(paraminput,devicefile) {
+fprep_estimates <- function(dirName,paraminput,devicefile) {
         
         # Prepare Estimates File
-        # paraminput <- "estimates.csv"; devicefile <- "device_map.csv"
-        # rm(paraminput,devicefile,paramFile,param,deviceMapFile,deviceMap,compDevice,compDevice_lr,compDevice_lss,targetDevice,trim.trailing)
+        # dirName <- inDir48; paraminput <- "estimates.csv"; devicefile <- "device_map.csv"
+        # rm(dirName,paraminput,devicefile,paramFile,param,deviceMapFile,deviceMap,compDevice,compDevice_lr,compDevice_lss,compDevice_lss2,targetDevice,trim.trailing)
 
         paramFile <- paraminput
-        param <- read.csv(paste(inDir,paramFile,sep=""), stringsAsFactors=FALSE)
+        param <- read.csv(paste(dirName,paramFile,sep=""), stringsAsFactors=FALSE)
         param<-param[param$name!="",]
+        param[param$PLAN=="62O","PLAN"] <- "62o"
+        param[param$PLAN=="62B","PLAN"] <- "62b"
+        
         param[grep("D_",param$name),"name"] <- "Intercept"
         param[grep("I_dumvar",param$name),"name"] <- "I_dumvar"
         
         deviceMapFile <- devicefile
-        deviceMap <- read.csv(paste(inDir,deviceMapFile,sep=""), stringsAsFactors=FALSE)
+        deviceMap <- read.csv(paste(dirName,deviceMapFile,sep=""), stringsAsFactors=FALSE)
         deviceMap <- deviceMap[,1:2]
         
         compDevice <- param[grepl("lr_mm",param$name),]
@@ -172,6 +201,8 @@ fprep_estimates <- function(paraminput,devicefile) {
         compDeviceKT  <- compDevice[substr(compDevice$name,1,2)=="KT",]; compDeviceKT$compCompany <- "KT"; compDeviceKT$name <- substr(compDeviceKT$name,3,100)
         compDevice <- rbind(compDeviceLGU,compDeviceSKT,compDeviceKT); rm(compDeviceLGU,compDeviceSKT,compDeviceKT)
         compDevice$compPlan <- substr(compDevice$name,nchar(x = compDevice$name)-2,nchar(x = compDevice$name))
+        compDevice[compDevice$compPlan=="62O","compPlan"] <- "62o"
+        compDevice[compDevice$compPlan=="62B","compPlan"] <- "62b"
         compDevice$name <- substr(compDevice$name,1,nchar(x = compDevice$name)-3)
         compDeviceMNP <- compDevice[substr(compDevice$name,nchar(x = compDevice$name)-2,nchar(x = compDevice$name))=="MNP",]; compDeviceMNP$compSubtype <- "MNP"; compDeviceMNP$name <- substr(compDeviceMNP$name,1,nchar(x = compDeviceMNP$name)-3)
         compDevice010 <- compDevice[substr(compDevice$name,nchar(x = compDevice$name)-2,nchar(x = compDevice$name))=="010",]; compDevice010$compSubtype <- "010"; compDevice010$name <- substr(compDevice010$name,1,nchar(x = compDevice010$name)-3)
@@ -194,8 +225,33 @@ fprep_estimates <- function(paraminput,devicefile) {
         compDevice$compDevice <- compDevice$Device
         compDevice <- compDevice[,-which(names(compDevice)=="name")]
         compDevice_lss <- compDevice
+
+        compDevice <- param[grepl("lr_ss",param$name),]
+        compDevice$compName <- "LSSOTH"
+        compDevice$name <- factor(compDevice$name)
+        compDevice$name <- substr(compDevice$name,6,100)
+        compDeviceLGU <- compDevice[substr(compDevice$name,1,3)=="LGU",]; compDeviceLGU$compCompany <- "LGU"; compDeviceLGU$name <- substr(compDeviceLGU$name,4,100)
+        compDeviceSKT <- compDevice[substr(compDevice$name,1,3)=="SKT",]; compDeviceSKT$compCompany <- "SKT"; compDeviceSKT$name <- substr(compDeviceSKT$name,4,100)
+        compDeviceKT  <- compDevice[substr(compDevice$name,1,2)=="KT",]; compDeviceKT$compCompany <- "KT"; compDeviceKT$name <- substr(compDeviceKT$name,3,100)
+        compDevice <- rbind(compDeviceLGU,compDeviceSKT,compDeviceKT); rm(compDeviceLGU,compDeviceSKT,compDeviceKT)
+        compDevice$compPlan <- substr(compDevice$name,nchar(x = compDevice$name)-2,nchar(x = compDevice$name))
+        compDevice[compDevice$compPlan=="62O","compPlan"] <- "62o"
+        compDevice[compDevice$compPlan=="62B","compPlan"] <- "62b"
+        compDevice$name <- substr(compDevice$name,1,nchar(x = compDevice$name)-3)
+        compDeviceMNP <- compDevice[substr(compDevice$name,nchar(x = compDevice$name)-2,nchar(x = compDevice$name))=="MNP",]; compDeviceMNP$compSubtype <- "MNP"; compDeviceMNP$name <- substr(compDeviceMNP$name,1,nchar(x = compDeviceMNP$name)-3)
+        compDevice010 <- compDevice[substr(compDevice$name,nchar(x = compDevice$name)-2,nchar(x = compDevice$name))=="010",]; compDevice010$compSubtype <- "010"; compDevice010$name <- substr(compDevice010$name,1,nchar(x = compDevice010$name)-3)
+        compDeviceDS  <- compDevice[substr(compDevice$name,nchar(x = compDevice$name)-1,nchar(x = compDevice$name))=="DS",]; compDeviceDS$compSubtype <- "DS"; compDeviceDS$name <- substr(compDeviceDS$name,1,nchar(x = compDeviceDS$name)-2)
+        compDeviceOTH <- compDevice[!substr(compDevice$name,nchar(x = compDevice$name)-2,nchar(x = compDevice$name))=="MNP" & 
+                                            !substr(compDevice$name,nchar(x = compDevice$name)-2,nchar(x = compDevice$name))=="010" &
+                                            !substr(compDevice$name,nchar(x = compDevice$name)-1,nchar(x = compDevice$name))=="DS",]
+        compDeviceOTH$compSubtype <- compDeviceOTH$SUBTYPE
+        compDevice <- rbind(compDeviceMNP,compDevice010,compDeviceDS,compDeviceOTH); rm(compDeviceMNP,compDevice010,compDeviceDS,compDeviceOTH)
+        compDevice <- merge(compDevice,deviceMap,by.x="name",by.y="MAP",all.x=T)
+        names(compDevice)[names(compDevice)=="ORIG"] <- "compDevice"
+        compDevice <- compDevice[,-1]
+        compDevice_lss2 <- compDevice
         
-        targetDevice <- param[!grepl("lr_mm",param$name) & !grepl("LRSS",param$name),]
+        targetDevice <- param[!grepl("lr_mm",param$name) & !grepl("LRSS",param$name) & !grepl("lr_ss",param$name),]
         targetDevice$compName <- targetDevice$name
         targetDevice$compCompany <- "LGU"
         targetDevice$compPlan <- targetDevice$PLAN
@@ -203,7 +259,9 @@ fprep_estimates <- function(paraminput,devicefile) {
         targetDevice$compDevice <- targetDevice$Device
         targetDevice <- targetDevice[,-which(names(targetDevice)=="name")]
         
-        param <- rbind(targetDevice, compDevice_lr,compDevice_lss)
+        param <- rbind(targetDevice, compDevice_lr,compDevice_lss,compDevice_lss2)
+        
+        summary(factor(param$compName))
         
         param <- cast(data=param,
                      formula = modelname + Device + CHANNEL + MDDI + PLAN + PLC + SUBTYPE + REGION + 
